@@ -83,6 +83,15 @@ query = 'select ' + \
 
 db = MySQLdb.connect(user="anon",passwd="",db="observatory")
 
+def jsonify(o):
+    if isinstance(o, str) or \
+       isinstance(o, int) or \
+       isinstance(o, float) or \
+       isinstance(o, long):
+        return o
+    else:
+        return str(o)
+
 def cmd_fingerprint(start_response, args):
     fp = ''
     try:
@@ -100,7 +109,8 @@ def cmd_fingerprint(start_response, args):
         if r is None: raise Exception('query="%s" fpstr="%s"' % (query, fpstr))
         output = { }
         for i in xrange(len(fields)):
-            output[fields[i]] = str(r[i])
+            if r[i] is not None:
+                output[fields[i]] = jsonify(r[i])
         output = cjson.encode(output) + '\n'
 
         hdrs = [('Content-type', 'text/json'),
@@ -108,12 +118,11 @@ def cmd_fingerprint(start_response, args):
         start_response(status, hdrs)
         return [output]
     except Exception, e:
-        output = "<html><body>'%s' not found: %r</body></html>" % (fp, e)
+        output = "<html><body>'%s' not found</body></html>" % (fp,)
         hdrs = [('Content-type', 'text/html'),
                 ('Content-Length', str(len(output)))]
         start_response('404 Not Found', hdrs)
         return [output]
-
 
 def cmd_commonname(start_response, args):
     status = '404 Not Found'
