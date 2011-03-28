@@ -79,7 +79,7 @@ def escape(field):
 
 query = 'select ' + \
         ','.join(map(escape, fields)) + \
-        ' from valid_certs where fingerprint = %s;'
+        ' from all_certs where fingerprint = %s;'
 
 db = MySQLdb.connect(user="anon",passwd="",db="observatory")
 
