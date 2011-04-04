@@ -1,4 +1,4 @@
-import MySQLdb, re, cjson
+import MySQLdb, re, cjson, traceback
 
 fields = (
         'Authority Information Access:1.3.6.1.4.4308.10.50 - URI',
@@ -117,6 +117,7 @@ def cmd_fingerprint(start_response, args):
         start_response(status, hdrs)
         return [output]
     except Exception, e:
+	sys.stderr.write("Exception: %r\nBacktrace: %s\n" % (e, traceback.format_exc()))
         db = None
         output = "<html><body>'%s' not found</body></html>" % (fp,)
         hdrs = [('Content-type', 'text/html'),
