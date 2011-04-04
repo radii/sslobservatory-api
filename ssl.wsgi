@@ -78,7 +78,7 @@ query = 'select ' + \
         ','.join(map(escape, fields)) + \
         ' from all_certs where fingerprint = %s;'
 
-db = MySQLdb.connect(user="anon",passwd="",db="observatory")
+db = None
 
 def jsonify(o):
     if isinstance(o, str) or \
@@ -100,6 +100,8 @@ def cmd_fingerprint(start_response, args):
         if fp is None: raise Exception("pat = '%s' fp='%s'" % (pat, args[0]))
         fp = (':'.join([fp.group(i) for i in xrange(1,21)])).upper()
         fpstr = "SHA1 Fingerprint=" + fp
+        if db is None:
+            db = MySQLdb.connect(user="anon",passwd="",db="observatory")
         c = db.cursor()
         c.execute(query, (fpstr,))
         r = c.fetchone()
@@ -115,6 +117,7 @@ def cmd_fingerprint(start_response, args):
         start_response(status, hdrs)
         return [output]
     except Exception, e:
+        db = None
         output = "<html><body>'%s' not found</body></html>" % (fp,)
         hdrs = [('Content-type', 'text/html'),
                 ('Content-Length', str(len(output)))]
