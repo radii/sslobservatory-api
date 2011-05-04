@@ -90,6 +90,7 @@ def jsonify(o):
         return str(o)
 
 def cmd_fingerprint(start_response, args):
+    global db
     fp = ''
     try:
         status = '200 OK'
@@ -100,16 +101,23 @@ def cmd_fingerprint(start_response, args):
         if fp is None: raise Exception("pat = '%s' fp='%s'" % (pat, args[0]))
         fp = (':'.join([fp.group(i) for i in xrange(1,21)])).upper()
         fpstr = "SHA1 Fingerprint=" + fp
-        if db is None:
-            db = MySQLdb.connect(user="anon",passwd="",db="observatory")
-        c = db.cursor()
-        c.execute(query, (fpstr,))
-        r = c.fetchone()
-        if r is None: raise Exception('query="%s" fpstr="%s"' % (query, fpstr))
-        output = { }
-        for i in xrange(len(fields)):
-            if r[i] is not None:
-                output[fields[i]] = jsonify(r[i])
+        for retry in xrange(10):
+            try:
+                if db is None:
+                    db = MySQLdb.connect(user="anon",passwd="",db="observatory2")
+                c = db.cursor()
+                c.execute(query, (fpstr,))
+                r = c.fetchone()
+                if r is None: raise Exception('query="%s" fpstr="%s"' % (query, fpstr))
+                output = { }
+                for i in xrange(len(fields)):
+                    if r[i] is not None:
+                        output[fields[i]] = jsonify(r[i])
+            except OperationalError, e:
+		sys.stderr.write("OperationalError %r, attempting to reopen MySQL" % e)
+                db = None
+                continue
+            break
         output = cjson.encode(output) + '\n'
 
         hdrs = [('Content-type', 'text/json'),
